@@ -1,0 +1,7 @@
+import { Link } from "@tanstack/react-router";
+import { CalendarDays, Inbox, Users, Settings, Shield, ListChecks } from "lucide-react";
+const pill = "inline-flex h-10 items-center gap-2 rounded-full border bg-card px-4 text-sm font-medium transition-colors hover:bg-accent";
+const active = "inline-flex h-10 items-center gap-2 rounded-full border border-primary bg-primary px-4 text-sm font-medium text-primary-foreground";
+export function StaffNavigation() {
+  return <nav aria-label="Espace cabinet" className="flex flex-wrap gap-2 border-b px-5 py-3 sm:px-10"><Link to="/agenda" activeOptions={{ exact: true }} className={pill} activeProps={{ className: active }}><CalendarDays className="size-4" />Agenda</Link><Link to="/demandes" activeOptions={{ exact: true }} className={pill} activeProps={{ className: active }}><Inbox className="size-4" />Demandes</Link><Link to="/patients" search={{ term: "", page: 0 }} activeOptions={{ exact: true }} className={pill} activeProps={{ className: active }}><Users className="size-4" />Patients</Link><Link to="/reglages" activeOptions={{ exact: true }} className={pill} activeProps={{ className: active }}><Settings className="size-4" />Réglages</Link><Link to="/personnel" activeOptions={{ exact: true }} className={pill} activeProps={{ className: active }}><Shield className="size-4" />Personnel</Link><Link to="/journal" activeOptions={{ exact: true }} className={pill} activeProps={{ className: active }}><ListChecks className="size-4" />Journal</Link></nav>;
+}

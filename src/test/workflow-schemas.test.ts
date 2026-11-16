@@ -1,0 +1,12 @@
+import { describe, expect, it } from "vitest";
+import { agendaInput, calendarWindow, requestInput, staffInput, tunisDateTime } from "@/lib/workflow-schemas";
+import { PUBLIC_REQUEST_WINDOW_MINUTES, publicRequestAllowed } from "@/lib/request-protection";
+const id = "00000000-0000-4000-8000-000000000001";
+describe("Validated cabinet workflows", () => {
+ it("limits public submissions to five attempts in ten minutes",()=>{expect(publicRequestAllowed(5)).toBe(true);expect(publicRequestAllowed(6)).toBe(false);expect(PUBLIC_REQUEST_WINDOW_MINUTES).toBe(10);});
+ it("public requests accept Tunisian phone and a period, without exact time or patient account", () => {const v={first_name:'Aziz',last_name:'Test',birth_date:'1990-05-12',phone:'+21612345678',date:'2026-11-16',period:'MORNING'};expect(requestInput.safeParse(v).success).toBe(true);expect(requestInput.safeParse({...v,phone:'12345678'}).success).toBe(false);expect(requestInput.safeParse({...v,period:'09:00'}).success).toBe(false);const{birth_date:_,...sansNaissance}=v;expect(requestInput.safeParse(sansNaissance).success).toBe(false);});
+ it("blocks cannot contain patient or service associations", () => {const v={resourceId:id,kind:'BLOCK',start:'2026-11-16T09:00:00+01:00',end:'2026-11-16T10:00:00+01:00',reason:'',cancelled:false};expect(agendaInput.safeParse(v).success).toBe(true);expect(agendaInput.safeParse({...v,patientId:id}).success).toBe(false);});
+ it("appointments require a patient and service",()=>{const v={resourceId:id,kind:'APPOINTMENT',start:'2026-11-16T09:00:00+01:00',end:'2026-11-16T10:00:00+01:00',reason:'',cancelled:false};expect(agendaInput.safeParse(v).success).toBe(false);expect(agendaInput.safeParse({...v,patientId:id,serviceId:id}).success).toBe(true);});
+ it("agenda provides day week and month windows",()=>{expect(calendarWindow('2026-11-14','day').days).toEqual(['2026-11-14']);expect(calendarWindow('2026-11-14','week').days).toHaveLength(7);expect(calendarWindow('2026-11-14','month').days).toHaveLength(30);expect(tunisDateTime('2026-11-14T08:00:00Z')).toBe('2026-11-14T09:00');});
+ it("technical roles never contain professional qualification",()=>{expect(staffInput.safeParse({userId:id,active:true,role:'DENTIST',name:'Test'}).success).toBe(false);expect(staffInput.parse({userId:id,active:true,role:'SUPER_ADMIN',name:'Test',is_verified_dentist:true})).not.toHaveProperty('is_verified_dentist');});
+});

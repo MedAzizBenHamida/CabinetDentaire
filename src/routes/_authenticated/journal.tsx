@@ -1,0 +1,10 @@
+import { useState } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { Workspace, WorkspaceError } from "@/components/workspace";
+import { Button } from "@/components/ui/button";
+import { readAudit } from "@/lib/workflows.functions";
+import { pageHead } from "@/lib/page-head";
+const auditQuery = (page: number) => queryOptions({ queryKey: ["audit",page], queryFn: () => readAudit({ data: { page } }), retry: false });
+export const Route = createFileRoute("/_authenticated/journal")({ loader: ({ context }) => context.queryClient.ensureQueryData(auditQuery(0)), head: () => pageHead("Journal de traçabilité", "Journal confidentiel du Cabinet Dentaire Ben Hamida."), errorComponent: WorkspaceError, component: Audit });
+function Audit() { const [page,setPage] = useState(0);const { data: rows } = useSuspenseQuery(auditQuery(page));return <Workspace title="Journal de traçabilité"><div className="divide-y border-y">{rows.map(r=><article key={r.id} className="py-5"><div className="flex flex-wrap justify-between gap-2"><h2 className="font-semibold">{r.operation} · {r.entity_type}</h2><time className="text-sm text-muted-foreground">{new Intl.DateTimeFormat('fr-TN',{dateStyle:'short',timeStyle:'short',timeZone:'Africa/Tunis'}).format(new Date(r.created_at))}</time></div><p className="mt-2 break-all text-xs text-muted-foreground">Compte : {r.actor_user_id??'Demande publique'}</p><p className="mt-1 break-all text-xs text-muted-foreground">Référence : {r.entity_id}</p></article>)}{rows.length===0&&<p className="py-12 text-muted-foreground">Aucun événement</p>}</div><div className="mt-5 flex flex-wrap justify-between gap-3"><span>Page {page+1}</span><div className="flex gap-2"><Button variant="outline" disabled={page===0} onClick={()=>setPage(page-1)}>Précédente</Button><Button variant="outline" disabled={rows.length<25} onClick={()=>setPage(page+1)}>Suivante</Button></div></div></Workspace>; }

@@ -1,0 +1,1 @@
+CREATE POLICY request_limits_no_client ON private.public_request_limits FOR ALL TO anon,authenticated USING(false) WITH CHECK(false);

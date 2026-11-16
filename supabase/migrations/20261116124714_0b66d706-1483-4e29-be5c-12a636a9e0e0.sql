@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.available_request_days(integer) TO anon, authenticated, service_role, postgres;

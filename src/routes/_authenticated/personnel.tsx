@@ -1,0 +1,20 @@
+import { useState, type FormEvent } from "react";
+import { createFileRoute } from "@tanstack/react-router";
+import { queryOptions, useSuspenseQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { Pencil, Save } from "lucide-react";
+import { Workspace, WorkspaceError } from "@/components/workspace";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { readStaff, saveStaff } from "@/lib/workflows.functions";
+import { staffInput } from "@/lib/workflow-schemas";
+import { pageHead } from "@/lib/page-head";
+const staffQuery = queryOptions({ queryKey: ["staff"], queryFn: () => readStaff(), retry: false });
+type Staff = Awaited<ReturnType<typeof readStaff>>[number];
+export const Route = createFileRoute("/_authenticated/personnel")({ loader: ({ context }) => context.queryClient.ensureQueryData(staffQuery), head: () => pageHead("Personnel", "Gestion sécurisée du personnel du Cabinet Dentaire Ben Hamida."), errorComponent: WorkspaceError, component: StaffPage });
+function StaffPage() {
+ const { data: rows } = useSuspenseQuery(staffQuery); const cache = useQueryClient(); const save = useServerFn(saveStaff); const [editor,setEditor] = useState<Staff|null>(null); const [busy,setBusy] = useState(false); const [error,setError] = useState(""); const [notice,setNotice] = useState("");
+ async function submit(e: FormEvent<HTMLFormElement>) { e.preventDefault(); if(!editor)return; setBusy(true);setError(''); const f = new FormData(e.currentTarget); try { await save({ data: staffInput.parse({ userId: editor.user_id, name: f.get('name'), role: f.get('role'), active: f.get('active')==='on' }) }); await cache.invalidateQueries();setEditor(null);setNotice('Compte mis à jour.'); } catch(v) {setError(v instanceof Error&&v.name!=='ZodError'?v.message:'Vérifiez les champs.');} finally {setBusy(false);} }
+ return <Workspace title="Personnel">{notice&&<p role="status" className="mb-4 text-primary">{notice}</p>}<div className="divide-y border-y">{rows.map(s=><article key={s.user_id} className="flex items-center justify-between gap-4 py-6"><div className="min-w-0"><h2 className="break-words font-semibold">{s.display_name||'Compte sans nom'}</h2><p className="mt-2 text-sm text-muted-foreground">{s.active?'Actif':'Inactif'} · {s.role??'Sans rôle'}</p><p className="mt-1 text-xs text-muted-foreground">{s.dentist?'Dentiste habilité':'Aucune habilitation dentiste vérifiée'}</p><p className="mt-2 break-all text-xs text-muted-foreground">{s.user_id}</p></div><Button variant="outline" size="icon" title="Modifier le compte" aria-label="Modifier le compte" onClick={()=>{setEditor(s);setError('');}}><Pencil /></Button></article>)}</div><Dialog open={Boolean(editor)} onOpenChange={v=>{if(!v&&!busy)setEditor(null);}}><DialogContent><DialogTitle>Modifier le compte</DialogTitle><DialogDescription>Rôle et activation du personnel</DialogDescription>{editor&&<form onSubmit={submit} className="space-y-5"><label className="block space-y-2 text-sm">Nom affiché<Input name="name" required maxLength={100} defaultValue={editor.display_name} /></label><label className="block space-y-2 text-sm">Rôle<select name="role" defaultValue={editor.role??''} required className="h-10 w-full rounded-md border bg-background px-3"><option value="" disabled>Choisir un rôle</option><option value="SUPER_ADMIN">Super administrateur</option><option value="ADMIN">Administrateur</option><option value="ASSISTANTE">Assistante</option></select></label><label className="flex items-center gap-3 text-sm"><input type="checkbox" name="active" defaultChecked={editor.active} />Compte actif</label>{error&&<p role="alert" className="text-sm text-destructive">{error}</p>}<Button disabled={busy}><Save />{busy?'Enregistrement…':'Enregistrer'}</Button></form>}</DialogContent></Dialog></Workspace>;
+}
